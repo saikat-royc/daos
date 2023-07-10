@@ -515,14 +515,16 @@ duns_resolve_path(const char *path, struct duns_attr_t *attr)
 
 	if (rc == -1) {
 		int err = errno;
-
+		printf("checkpoint1: %d\n", rc);
 		D_INFO("Failed to statfs %s: %s\n", path, strerror(errno));
 		D_GOTO(out, rc = err);
 	}
 
 	D_REALPATH(realp, path);
-	if (realp == NULL)
+	if (realp == NULL) {
+		printf("checkpoint2: %d\n", errno);
 		D_GOTO(out, rc = errno);
+	}
 
 	path_len = strnlen(realp, PATH_MAX);
 	if (path_len > PATH_MAX - 1)
@@ -537,7 +539,7 @@ duns_resolve_path(const char *path, struct duns_attr_t *attr)
 		D_GOTO(out, rc = ENOMEM);
 
 	cur_idx = path_len;
-
+	printf("checkpoint3");
 	while (1) {
 		s = lgetxattr(dir_path, DUNS_XATTR_NAME, &str,
 			      DUNS_MAX_XATTR_LEN);

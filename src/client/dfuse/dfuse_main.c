@@ -325,7 +325,7 @@ main(int argc, char **argv)
 	struct dfuse_info            *dfuse_info                             = NULL;
 	struct dfuse_pool            *dfp                                    = NULL;
 	struct dfuse_cont            *dfs                                    = NULL;
-	struct duns_attr_t            duns_attr                              = {};
+	// struct duns_attr_t            duns_attr                              = {};
 	uuid_t                        cont_uuid                              = {};
 	char                          pool_name[DAOS_PROP_LABEL_MAX_LEN + 1] = {};
 	char                          cont_name[DAOS_PROP_LABEL_MAX_LEN + 1] = {};
@@ -355,6 +355,7 @@ main(int argc, char **argv)
 							{"help", no_argument, 0, 'h'},
 							{0, 0, 0, 0}};
 
+	printf("dfuse main called");
 	rc = daos_debug_init(DAOS_LOG_DEFAULT);
 	if (rc != 0)
 		D_GOTO(out, rc);
@@ -461,6 +462,7 @@ main(int argc, char **argv)
 		}
 	}
 
+	printf("dfuse_main pool_name %s, cont_name %s\n", pool_name, cont_name);
 	if (!dfuse_info->di_foreground && getenv("PMIX_RANK")) {
 		DFUSE_TRA_WARNING(dfuse_info,
 				  "Not running in background under orterun");
@@ -533,19 +535,19 @@ main(int argc, char **argv)
 	rc = daos_init();
 	if (rc != -DER_SUCCESS)
 		D_GOTO(out_debug, rc);
-
+	printf("cp1\n");
 	start_fault_attr = d_fault_attr_lookup(100);
 
 	DFUSE_TRA_ROOT(dfuse_info, "dfuse_info");
-
 	rc = dfuse_fs_init(dfuse_info, &fs_handle);
 	if (rc != 0)
 		D_GOTO(out_fini, rc);
-
+	printf("cp2\n");
 	/* Firsly check for attributes on the path.  If this option is set then
 	 * it is expected to work.
 	 */
 	if (path) {
+		printf("cp3: path %s\n", path);
 		struct duns_attr_t path_attr = {.da_flags = DUNS_NO_REVERSE_LOOKUP};
 
 		if (pool_name[0]) {
@@ -578,37 +580,40 @@ main(int argc, char **argv)
 	 * set, but if nothing exists on the mountpoint then this is not an
 	 * error so keep going.
 	 */
-	duns_attr.da_flags = DUNS_NO_REVERSE_LOOKUP;
-	rc = duns_resolve_path(dfuse_info->di_mountpoint, &duns_attr);
-	DFUSE_TRA_INFO(dfuse_info, "duns_resolve_path() on mountpoint returned: %d (%s)", rc,
-		       strerror(rc));
-	if (rc == 0) {
-		if (pool_name[0]) {
-			printf("Pool specified multiple ways\n");
-			D_GOTO(out_daos, rc = -DER_INVAL);
-		}
-		/* If path was set, and is different to mountpoint then abort.
-		 */
-		if (path && (strcmp(path, dfuse_info->di_mountpoint) == 0)) {
-			printf("Attributes set on both path and mountpoint\n");
-			D_GOTO(out_daos, rc = -DER_INVAL);
-		}
+	printf("cp4\n");
+	// duns_attr.da_flags = DUNS_NO_REVERSE_LOOKUP;
+	printf("dfuse_info->di_mountpoint %s\n", dfuse_info->di_mountpoint);
+	// rc = duns_resolve_path(dfuse_info->di_mountpoint, &duns_attr);
+	// printf("duns_resolve_path rc %d\n", rc);
+	// DFUSE_TRA_INFO(dfuse_info, "duns_resolve_path() on mountpoint returned: %d (%s)", rc,
+	// 	       strerror(rc));
+	// if (rc == 0) {
+	// 	if (pool_name[0]) {
+	// 		printf("Pool specified multiple ways\n");
+	// 		D_GOTO(out_daos, rc = -DER_INVAL);
+	// 	}
+	// 	/* If path was set, and is different to mountpoint then abort.
+	// 	 */
+	// 	if (path && (strcmp(path, dfuse_info->di_mountpoint) == 0)) {
+	// 		printf("Attributes set on both path and mountpoint\n");
+	// 		D_GOTO(out_daos, rc = -DER_INVAL);
+	// 	}
 
-		strncpy(pool_name, duns_attr.da_pool, DAOS_PROP_LABEL_MAX_LEN + 1);
-		strncpy(cont_name, duns_attr.da_cont, DAOS_PROP_LABEL_MAX_LEN + 1);
-		duns_destroy_attr(&duns_attr);
+	// 	strncpy(pool_name, duns_attr.da_pool, DAOS_PROP_LABEL_MAX_LEN + 1);
+	// 	strncpy(cont_name, duns_attr.da_cont, DAOS_PROP_LABEL_MAX_LEN + 1);
+	// 	duns_destroy_attr(&duns_attr);
 
-	} else if (rc == ENOENT) {
-		printf("Mount point does not exist\n");
-		D_GOTO(out_daos, rc = daos_errno2der(rc));
-	} else if (rc == ENOTCONN) {
-		printf("Stale mount point, run fusermount3 and retry\n");
-		D_GOTO(out_daos, rc = daos_errno2der(rc));
-	} else if (rc != ENODATA && rc != ENOTSUP) {
-		/* DUNS may have logged this already but won't have printed anything */
-		printf("Error resolving mount point: %d (%s)\n", rc, strerror(rc));
-		D_GOTO(out_daos, rc = daos_errno2der(rc));
-	}
+	// } else if (rc == ENOENT) {
+	// 	printf("Mount point does not exist\n");
+	// 	D_GOTO(out_daos, rc = daos_errno2der(rc));
+	// } else if (rc == ENOTCONN) {
+	// 	printf("Stale mount point, run fusermount3 and retry\n");
+	// 	D_GOTO(out_daos, rc = daos_errno2der(rc));
+	// } else if (rc != ENODATA && rc != ENOTSUP) {
+	// 	/* DUNS may have logged this already but won't have printed anything */
+	// 	printf("Error resolving mount point: %d (%s)\n", rc, strerror(rc));
+	// 	D_GOTO(out_daos, rc = daos_errno2der(rc));
+	// }
 
 	/* Connect to a pool. */
 	rc = dfuse_pool_connect(fs_handle, pool_name, &dfp);
